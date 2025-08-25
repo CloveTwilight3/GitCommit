@@ -14,10 +14,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Install PowerShell
-      uses: actions/setup-powershell@v1
-      
     - name: Run PowerShell Script Analyzer
+      shell: pwsh
       run: |
         Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
         $results = Invoke-ScriptAnalyzer -Path "src/" -Recurse -Severity Warning
@@ -28,16 +26,25 @@ jobs:
         Write-Host "✅ PowerShell Script Analyzer passed"
         
     - name: Test Git Commands (Dry Run)
+      shell: pwsh
       run: |
         # Test that the script can parse without syntax errors
         $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "src/GitCommit.ps1" -Raw), [ref]$null)
         Write-Host "✅ PowerShell script syntax is valid"
         
     - name: Test Installer Script
+      shell: pwsh
       run: |
         # Test installer script syntax
         $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "installers/powershell/Install-GitCommit.ps1" -Raw), [ref]$null)
         Write-Host "✅ Installer script syntax is valid"
+        
+    - name: Test Uninstaller Script
+      shell: pwsh
+      run: |
+        # Test uninstaller script syntax  
+        $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "installers/powershell/Uninstall-GitCommit.ps1" -Raw), [ref]$null)
+        Write-Host "✅ Uninstaller script syntax is valid"
 
   test-cross-platform:
     runs-on: ubuntu-latest
@@ -46,23 +53,113 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Install PowerShell
-      run: |
-        # Install PowerShell on Linux
-        wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
-        sudo dpkg -i packages-microsoft-prod.deb
-        sudo apt-get update
-        sudo apt-get install -y powershell
-        
     - name: Test PowerShell Script on Linux
+      shell: pwsh
       run: |
         # Test basic script parsing
-        pwsh -Command "
         try {
-          \$null = [System.Management.Automation.PSParser]::Tokenize((Get-Content 'src/GitCommit.ps1' -Raw), [ref]\$null)
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content 'src/GitCommit.ps1' -Raw), [ref]$null)
           Write-Host '✅ PowerShell script works on Linux'
         } catch {
           Write-Host '❌ PowerShell script failed on Linux'
           exit 1
         }
-        "
+
+  validate-chocolatey:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Chocolatey
+      shell: pwsh
+      run: |
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        
+    - name: Validate Chocolatey Package
+      shell: pwsh
+      run: |
+        # Copy source files to chocolatey tools
+        if (-not (Test-Path "chocolatey/tools")) {
+          New-Item -ItemType Directory -Path "chocolatey/tools" -Force
+        }
+        Copy-Item "src/GitCommit.ps1" -Destination "chocolatey/tools/" -Force
+        Copy-Item "src/GitCommit.bat" -Destination "chocolatey/tools/" -Force
+        
+        # Test pack (dry run)
+        cd chocolatey
+        choco pack --what-if
+        Write-Host "✅ Chocolatey package validation passed"
+        
+  validate-nsis:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install NSIS
+      shell: pwsh
+      run: |
+        choco install nsis -y
+        
+    - name: Create Required Files for NSIS
+      shell: pwsh
+      run: |
+        # Create LICENSE if it doesn't exist
+        if (-not (Test-Path "LICENSE")) {
+          @"
+MIT License
+
+Copyright (c) 2025 CloveTwilight3
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"@ | Out-File "LICENSE" -Encoding UTF8
+        }
+        
+        # Copy license for NSIS
+        Copy-Item "LICENSE" -Destination "installers/nsis/" -Force
+        
+        # Create a dummy icon if needed
+        if (-not (Test-Path "installers/nsis/icon.ico")) {
+          # Create a minimal ICO file (this is just for testing)
+          $iconBytes = [Convert]::FromBase64String("AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAA")
+          [System.IO.File]::WriteAllBytes("installers/nsis/icon.ico", $iconBytes)
+        }
+        
+    - name: Test NSIS Script Syntax
+      shell: pwsh
+      run: |
+        $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+        if (-not (Test-Path $nsisPath)) {
+            $nsisPath = "$env:ProgramFiles\NSIS\makensis.exe"
+        }
+        
+        # Test NSIS script syntax (compile check only)
+        & $nsisPath "/NOCD" "/NOCONFIG" "installers/nsis/GitCommit-Installer.nsi"
+        
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✅ NSIS installer validation passed"
+        } else {
+          Write-Host "❌ NSIS installer validation failed"
+          exit 1
+        }
