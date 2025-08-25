@@ -3,6 +3,7 @@
 
 Write-Host "GitCommit - Automated Git Workflow" -ForegroundColor Cyan
 Write-Host "=================================" -ForegroundColor Cyan
+Write-Host "by CloveTwilight3" -ForegroundColor Cyan
 Write-Host ""
 
 # Check if we're in a Git repository
