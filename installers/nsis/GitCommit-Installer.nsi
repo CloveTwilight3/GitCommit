@@ -12,10 +12,13 @@ SetCompressor lzma
 !include "MUI2.nsh"
 !include "StrFunc.nsh"
 
-; Include string functions
-${StrLoc}
+; Include string functions for installer
 ${StrStr}
 ${StrRep}
+
+; Include string functions for uninstaller
+${UnStrStr}
+${UnStrRep}
 
 ; General
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
@@ -81,23 +84,23 @@ Function un.RemoveFromPath
   ReadRegStr $1 ${Environ} "PATH"
   
   ; Try to remove "$0;" first
-  ${StrStr} $2 "$1" "$0;"
+  ${UnStrStr} $2 "$1" "$0;"
   ${If} $2 != ""
-    ${StrRep} $1 "$1" "$0;" ""
+    ${UnStrRep} $1 "$1" "$0;" ""
     Goto done
   ${EndIf}
   
   ; Try to remove ";$0" 
-  ${StrStr} $2 "$1" ";$0"
+  ${UnStrStr} $2 "$1" ";$0"
   ${If} $2 != ""
-    ${StrRep} $1 "$1" ";$0" ""
+    ${UnStrRep} $1 "$1" ";$0" ""
     Goto done
   ${EndIf}
   
   ; Try to remove just "$0" (in case it's the only path)
-  ${StrStr} $2 "$1" "$0"
+  ${UnStrStr} $2 "$1" "$0"
   ${If} $2 != ""
-    ${StrRep} $1 "$1" "$0" ""
+    ${UnStrRep} $1 "$1" "$0" ""
   ${EndIf}
   
   done:
