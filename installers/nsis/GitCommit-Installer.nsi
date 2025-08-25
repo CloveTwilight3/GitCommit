@@ -10,7 +10,6 @@ SetCompressor lzma
 
 ; Modern UI
 !include "MUI2.nsh"
-!include "EnvVarUpdate.nsh"
 
 ; General
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
@@ -19,6 +18,7 @@ InstallDir "$PROGRAMFILES\GitCommit"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
+RequestExecutionLevel admin
 
 ; Interface Settings
 !define MUI_ABORTWARNING
@@ -38,8 +38,75 @@ ShowUnInstDetails show
 ; Languages
 !insertmacro MUI_LANGUAGE "English"
 
-; Reserve Files
-!insertmacro MUI_RESERVEFILE_LANGDLL
+; Functions for PATH manipulation
+!define Environ 'HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"'
+
+Function AddToPath
+  Exch $0
+  Push $1
+  Push $2
+  Push $3
+  
+  ReadRegStr $1 ${Environ} "PATH"
+  ${If} $1 == ""
+    WriteRegExpandStr ${Environ} "PATH" "$0"
+  ${Else}
+    ${StrLoc} $2 "$1" "$0;" ""
+    ${If} $2 == ""
+      ${StrLoc} $2 "$1" ";$0" ""
+      ${If} $2 == ""
+        ${StrLoc} $2 "$1" "$0" ""
+        ${If} $2 == ""
+          WriteRegExpandStr ${Environ} "PATH" "$1;$0"
+        ${EndIf}
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+  
+  ; Notify system of environment change
+  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+  
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+
+Function un.RemoveFromPath
+  Exch $0
+  Push $1
+  Push $2
+  Push $3
+  
+  ReadRegStr $1 ${Environ} "PATH"
+  ${StrStr} $2 "$1" "$0;"
+  ${If} $2 != ""
+    ${StrRep} $1 "$1" "$0;" ""
+    Goto done
+  ${EndIf}
+  
+  ${StrStr} $2 "$1" ";$0"
+  ${If} $2 != ""
+    ${StrRep} $1 "$1" ";$0" ""
+    Goto done
+  ${EndIf}
+  
+  ${StrStr} $2 "$1" "$0"
+  ${If} $2 != ""
+    ${StrRep} $1 "$1" "$0" ""
+  ${EndIf}
+  
+  done:
+  WriteRegExpandStr ${Environ} "PATH" "$1"
+  
+  ; Notify system of environment change
+  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+  
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
 
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
@@ -48,7 +115,8 @@ Section "MainSection" SEC01
   File "..\..\src\GitCommit.bat"
 
   ; Add to PATH
-  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR"
+  Push "$INSTDIR"
+  Call AddToPath
 
   ; Create registry entries
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\GitCommit.bat"
@@ -63,7 +131,8 @@ SectionEnd
 
 Section Uninstall
   ; Remove from PATH
-  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"
+  Push "$INSTDIR"
+  Call un.RemoveFromPath
 
   ; Remove files
   Delete "$INSTDIR\GitCommit.ps1"

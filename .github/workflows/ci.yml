@@ -139,10 +139,16 @@ jobs:
         # Copy license for NSIS
         Copy-Item "LICENSE" -Destination "installers/nsis/" -Force
         
-        # Create a dummy icon if needed
+        # Create a dummy icon for NSIS
         if (-not (Test-Path "installers/nsis/icon.ico")) {
-          $iconBytes = [Convert]::FromBase64String("AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAA")
-          [System.IO.File]::WriteAllBytes("installers/nsis/icon.ico", $iconBytes)
+          # Create a simple 16x16 icon
+          $iconData = @(
+            0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x00, 0x00, 0x01, 0x00, 0x08, 0x00, 0x68, 0x05,
+            0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00,
+            0x00, 0x00, 0x01, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+          ) + (0..255) * 4 + (0..255)
+          [System.IO.File]::WriteAllBytes("installers/nsis/icon.ico", $iconData)
         }
         
     - name: Test NSIS Script Syntax
@@ -154,7 +160,7 @@ jobs:
         }
         
         # Test NSIS script syntax (compile check only)
-        & $nsisPath "/NOCD" "/NOCONFIG" "installers/nsis/GitCommit-Installer.nsi"
+        & $nsisPath "/V2" "installers/nsis/GitCommit-Installer.nsi"
         
         if ($LASTEXITCODE -eq 0) {
           Write-Host "✅ NSIS installer validation passed"
