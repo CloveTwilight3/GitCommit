@@ -85,6 +85,24 @@ jobs:
         # Build package
         cd chocolatey
         choco pack
+        Write-Host "✅ Chocolatey package built successfully"
+    
+    - name: Publish to Chocolatey
+      shell: pwsh
+      run: |
+        # Set API key
+        choco apikey --key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
+        
+        # Push package to Chocolatey community repository
+        $packageFile = Get-ChildItem "chocolatey/*.nupkg" | Select-Object -First 1
+        if ($packageFile) {
+          Write-Host "Publishing $($packageFile.Name) to Chocolatey..."
+          choco push $packageFile.FullName --source https://push.chocolatey.org/
+          Write-Host "✅ Package published to Chocolatey!"
+        } else {
+          Write-Host "❌ No .nupkg file found!"
+          exit 1
+        }
         
     - name: Build NSIS Installer
       shell: pwsh
@@ -175,8 +193,9 @@ jobs:
           
           **🍫 Chocolatey (Recommended):**
           ```bash
-          choco install gitcommit --version ${{ inputs.version }}
+          choco install gitcommit
           ```
+          *Note: It may take a few minutes for the package to become available after release.*
           
           **💾 Windows Installer:**
           Download and run `GitCommit-${{ inputs.version }}-Setup.exe`
