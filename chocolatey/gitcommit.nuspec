@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>gitcommit</id>
+    <version>1.0.0</version>
+    <packageSourceUrl>https://github.com/CloveTwilight3/GitCommit</packageSourceUrl>
+    <owners>CloveTwilight3</owners>
+    <title>GitCommit</title>
+    <authors>CloveTwilight3</authors>
+    <projectUrl>https://github.com/CloveTwilight3/GitCommit</projectUrl>
+    <copyright>2025 CloveTwilight3</copyright>
+    <licenseUrl>https://github.com/CloveTwilight3/GitCommit/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>git automation workflow powershell</tags>
+    <summary>Automated Git workflow tool for streamlined commits and pushes</summary>
+    <description>
+GitCommit is an automated Git workflow tool that simplifies the process of committing and pushing changes to your Git repositories. It handles the entire workflow: switching to main branch, pulling latest changes, adding files, committing with your message, and pushing to origin.
+
+Features:
+- Automated Git workflow (checkout, pull, add, commit, push)
+- Interactive commit message prompts
+- Error handling and validation
+- Works with any Git repository
+- Simple command-line interface
+
+Usage: Simply run 'GitCommit' from any Git repository directory.
+    </description>
+    <releaseNotes>Initial release of GitCommit automation tool.</releaseNotes>
+    <dependencies>
+      <dependency id="git" version="2.0.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
