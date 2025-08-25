@@ -10,6 +10,12 @@ SetCompressor lzma
 
 ; Modern UI
 !include "MUI2.nsh"
+!include "StrFunc.nsh"
+
+; Include string functions
+${StrLoc}
+${StrStr}
+${StrRep}
 
 ; General
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
@@ -45,28 +51,22 @@ Function AddToPath
   Exch $0
   Push $1
   Push $2
-  Push $3
   
   ReadRegStr $1 ${Environ} "PATH"
   ${If} $1 == ""
     WriteRegExpandStr ${Environ} "PATH" "$0"
   ${Else}
-    ${StrLoc} $2 "$1" "$0;" ""
+    ; Check if path already exists
+    ${StrStr} $2 "$1" "$0"
     ${If} $2 == ""
-      ${StrLoc} $2 "$1" ";$0" ""
-      ${If} $2 == ""
-        ${StrLoc} $2 "$1" "$0" ""
-        ${If} $2 == ""
-          WriteRegExpandStr ${Environ} "PATH" "$1;$0"
-        ${EndIf}
-      ${EndIf}
+      ; Path not found, add it
+      WriteRegExpandStr ${Environ} "PATH" "$1;$0"
     ${EndIf}
   ${EndIf}
   
   ; Notify system of environment change
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
   
-  Pop $3
   Pop $2
   Pop $1
   Pop $0
@@ -79,18 +79,22 @@ Function un.RemoveFromPath
   Push $3
   
   ReadRegStr $1 ${Environ} "PATH"
+  
+  ; Try to remove "$0;" first
   ${StrStr} $2 "$1" "$0;"
   ${If} $2 != ""
     ${StrRep} $1 "$1" "$0;" ""
     Goto done
   ${EndIf}
   
+  ; Try to remove ";$0" 
   ${StrStr} $2 "$1" ";$0"
   ${If} $2 != ""
     ${StrRep} $1 "$1" ";$0" ""
     Goto done
   ${EndIf}
   
+  ; Try to remove just "$0" (in case it's the only path)
   ${StrStr} $2 "$1" "$0"
   ${If} $2 != ""
     ${StrRep} $1 "$1" "$0" ""
