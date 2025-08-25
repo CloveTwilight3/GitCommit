@@ -1,82 +1,82 @@
 # GitCommit v1.0.0
 # Automated Git workflow tool
 
-Write-Host "GitCommit - Automated Git Workflow" -ForegroundColor Cyan
-Write-Host "=================================" -ForegroundColor Cyan
-Write-Host "by CloveTwilight3" -ForegroundColor Cyan
-Write-Host ""
+Write-Information "GitCommit - Automated Git Workflow" -InformationAction Continue
+Write-Information "=================================" -InformationAction Continue
+Write-Information "by CloveTwilight3" -InformationAction Continue
+Write-Information "" -InformationAction Continue
 
 # Check if we're in a Git repository
 if (-not (Test-Path ".git")) {
-    Write-Host "[ERROR] Not in a Git repository!" -ForegroundColor Red
-    Write-Host "Please run this command from inside a Git repository." -ForegroundColor Yellow
+    Write-Error "[ERROR] Not in a Git repository!"
+    Write-Warning "Please run this command from inside a Git repository."
     exit 1
 }
 
 # Step 1: Switch to main branch
-Write-Host "[1/5] Switching to main branch..." -ForegroundColor Yellow
+Write-Information "[1/5] Switching to main branch..." -InformationAction Continue
 git checkout main
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Failed to switch to main branch" -ForegroundColor Red
+    Write-Error "[ERROR] Failed to switch to main branch"
     exit 1
 }
 
 # Step 2: Pull latest changes
-Write-Host "[2/5] Pulling latest changes..." -ForegroundColor Yellow
+Write-Information "[2/5] Pulling latest changes..." -InformationAction Continue
 git pull origin main
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Failed to pull changes. Please resolve conflicts manually." -ForegroundColor Red
+    Write-Error "[ERROR] Failed to pull changes. Please resolve conflicts manually."
     exit 1
 }
 
 # Step 3: Add all changes
-Write-Host "[3/5] Adding all changes..." -ForegroundColor Yellow
+Write-Information "[3/5] Adding all changes..." -InformationAction Continue
 git add .
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Failed to add files" -ForegroundColor Red
+    Write-Error "[ERROR] Failed to add files"
     exit 1
 }
 
 # Step 4: Check if there are changes to commit
-Write-Host "[4/5] Checking for changes..." -ForegroundColor Yellow
+Write-Information "[4/5] Checking for changes..." -InformationAction Continue
 $status = git status --porcelain
 if (-not $status) {
-    Write-Host "[SUCCESS] No changes to commit! Repository is up to date." -ForegroundColor Green
+    Write-Information "[SUCCESS] No changes to commit! Repository is up to date." -InformationAction Continue
     exit 0
 }
 
 # Step 5: Get commit message from user
-Write-Host ""
-Write-Host "Changes found! Time to commit:" -ForegroundColor Green
+Write-Information "" -InformationAction Continue
+Write-Information "Changes found! Time to commit:" -InformationAction Continue
 $commitMessage = Read-Host "Enter your commit message"
 
 if ([string]::IsNullOrWhiteSpace($commitMessage)) {
-    Write-Host "[ERROR] Commit message cannot be empty!" -ForegroundColor Red
+    Write-Error "[ERROR] Commit message cannot be empty!"
     exit 1
 }
 
 # Step 6: Commit changes
-Write-Host "[4/5] Committing changes..." -ForegroundColor Yellow
+Write-Information "[4/5] Committing changes..." -InformationAction Continue
 git commit -m "$commitMessage"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Failed to commit changes" -ForegroundColor Red
+    Write-Error "[ERROR] Failed to commit changes"
     exit 1
 }
 
 # Step 7: Push to main branch
-Write-Host "[5/5] Pushing to main branch..." -ForegroundColor Yellow
+Write-Information "[5/5] Pushing to main branch..." -InformationAction Continue
 git push origin main
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Failed to push changes" -ForegroundColor Red
+    Write-Error "[ERROR] Failed to push changes"
     exit 1
 }
 
 # Success!
-Write-Host ""
-Write-Host "SUCCESS! Your changes have been committed and pushed!" -ForegroundColor Green
-Write-Host "Repository is now up to date." -ForegroundColor Cyan
+Write-Information "" -InformationAction Continue
+Write-Information "SUCCESS! Your changes have been committed and pushed!" -InformationAction Continue
+Write-Information "Repository is now up to date." -InformationAction Continue
