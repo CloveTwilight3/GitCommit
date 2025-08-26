@@ -24,12 +24,17 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         id: pr_info
         run: |
-          PR_DATA=$(gh pr view ${{ github.event.inputs.pr_number }} --json author,headRefName)
-          echo "author=$(echo $PR_DATA | jq -r '.author.login')" >> $GITHUB_OUTPUT
+          echo "Checking PR #${{ github.event.inputs.pr_number }}"
+          gh auth status
+          PR_DATA=$(gh pr view ${{ github.event.inputs.pr_number }} --json author,headRefName,state)
+          echo "PR Data: $PR_DATA"
+          AUTHOR=$(echo $PR_DATA | jq -r '.author.login')
+          echo "Author: $AUTHOR"
+          echo "author=$AUTHOR" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Dependabot metadata
+      - name: Dependabot metadata (for automatic trigger)
         if: github.event_name == 'pull_request'
         id: metadata
         uses: dependabot/fetch-metadata@v1
@@ -45,8 +50,10 @@ jobs:
            steps.pr_info.outputs.author == 'dependabot[bot]')
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manually merging PR #${{ github.event.inputs.pr_number }}"
             gh pr merge --auto --merge ${{ github.event.inputs.pr_number }}
           else
+            echo "Auto-merging PR from pull_request trigger"
             gh pr merge --auto --merge "$PR_URL"
           fi
         env:
