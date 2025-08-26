@@ -1,5 +1,12 @@
 name: Dependabot auto-merge
-on: pull_request
+on: 
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to merge'
+        required: true
+        type: number
 
 permissions:
   contents: write
@@ -8,17 +15,40 @@ permissions:
 jobs:
   dependabot:
     runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' }}
+    if: ${{ github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch' }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Get PR info (for manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        id: pr_info
+        run: |
+          PR_DATA=$(gh pr view ${{ github.event.inputs.pr_number }} --json author,headRefName)
+          echo "author=$(echo $PR_DATA | jq -r '.author.login')" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Dependabot metadata
+        if: github.event_name == 'pull_request'
         id: metadata
         uses: dependabot/fetch-metadata@v1
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       
       - name: Auto-merge Dependabot PRs
-        if: ${{steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'}}
-        run: gh pr merge --auto --merge "$PR_URL"
+        if: |
+          (github.event_name == 'pull_request' && 
+           (steps.metadata.outputs.update-type == 'version-update:semver-patch' || 
+            steps.metadata.outputs.update-type == 'version-update:semver-minor')) ||
+          (github.event_name == 'workflow_dispatch' && 
+           steps.pr_info.outputs.author == 'dependabot[bot]')
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            gh pr merge --auto --merge ${{ github.event.inputs.pr_number }}
+          else
+            gh pr merge --auto --merge "$PR_URL"
+          fi
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
