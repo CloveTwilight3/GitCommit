@@ -19,27 +19,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        
+      - name: Configure Git
+        run: |
+          git config --global user.name 'Clove Twilight [BOT]'
+          git config --global user.email 'noreply@clovetwilight3.co.uk'
         
       - name: Get PR info (for manual trigger)
         if: github.event_name == 'workflow_dispatch'
         id: pr_info
         run: |
           echo "Checking PR #${{ github.event.inputs.pr_number }}"
-          gh auth status
           PR_DATA=$(gh pr view ${{ github.event.inputs.pr_number }} --json author,headRefName,state)
           echo "PR Data: $PR_DATA"
           AUTHOR=$(echo $PR_DATA | jq -r '.author.login')
           echo "Author: $AUTHOR"
           echo "author=$AUTHOR" >> $GITHUB_OUTPUT
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       
       - name: Dependabot metadata (for automatic trigger)
         if: github.event_name == 'pull_request'
         id: metadata
         uses: dependabot/fetch-metadata@v1
         with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          github-token: "${{ secrets.PERSONAL_ACCESS_TOKEN }}"
       
       - name: Auto-merge Dependabot PRs
         if: |
@@ -47,7 +53,7 @@ jobs:
            (steps.metadata.outputs.update-type == 'version-update:semver-patch' || 
             steps.metadata.outputs.update-type == 'version-update:semver-minor')) ||
           (github.event_name == 'workflow_dispatch' && 
-           steps.pr_info.outputs.author == 'dependabot[bot]')
+           steps.pr_info.outputs.author == 'app/dependabot')
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manually merging PR #${{ github.event.inputs.pr_number }}"
@@ -58,4 +64,4 @@ jobs:
           fi
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{secrets.PERSONAL_ACCESS_TOKEN}}
