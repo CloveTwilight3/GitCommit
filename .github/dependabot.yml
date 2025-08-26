@@ -18,7 +18,7 @@ updates:
       - "updates"
       - "dependencies"
     
-  # Monitor PowerShell Gallery modules (if any are added later)
+  # Monitor PowerShell Gallery modules
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
@@ -35,3 +35,22 @@ updates:
     labels:
       - "updates"
       - "dependencies"
+  
+  # Check for Chocolatey package updates
+  - package-ecosystem: "nuget"
+    directory: "/chocolatey"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    commit-message:
+      prefix: "choco"
+      include: "scope"
+    reviewers:
+      - "CloveTwilightBOT"
+    assignees:
+      - "CloveTwilightBOT"
+    labels:
+      - "updates"
+      - "dependencies"
+      - "chocolatey"
