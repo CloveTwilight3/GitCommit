@@ -4,8 +4,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
     commit-message:
       prefix: "ci"
@@ -22,8 +21,7 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday" 
+      interval: "daily" 
       time: "10:00"
     commit-message:
       prefix: "deps"
@@ -40,8 +38,7 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/chocolatey"
     schedule:
-      interval: "weekly"
-      day: "tuesday"
+      interval: "daily"
       time: "09:00"
     commit-message:
       prefix: "choco"
