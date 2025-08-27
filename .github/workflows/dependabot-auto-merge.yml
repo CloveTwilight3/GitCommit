@@ -20,12 +20,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Configure Git
         run: |
-          git config --global user.name 'Clove Twilight [BOT]'
-          git config --global user.email 'noreply@clovetwilight3.co.uk'
+          git config --global user.name 'CloveTwilight3 [BOT]'
+          git config --global user.email '193822784+CloveTwilightBOT@users.noreply.github.com'
         
       - name: Get PR info (for manual trigger)
         if: github.event_name == 'workflow_dispatch'
@@ -38,14 +38,14 @@ jobs:
           echo "Author: $AUTHOR"
           echo "author=$AUTHOR" >> $GITHUB_OUTPUT
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Dependabot metadata (for automatic trigger)
         if: github.event_name == 'pull_request'
         id: metadata
         uses: dependabot/fetch-metadata@v2
         with:
-          github-token: "${{ secrets.PERSONAL_ACCESS_TOKEN }}"
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
       
       - name: Auto-merge Dependabot PRs
         if: |
@@ -56,12 +56,30 @@ jobs:
            steps.pr_info.outputs.author == 'app/dependabot')
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manually merging PR #${{ github.event.inputs.pr_number }}"
-            gh pr merge --auto --merge ${{ github.event.inputs.pr_number }}
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
           else
-            echo "Auto-merging PR from pull_request trigger"
-            gh pr merge --auto --merge "$PR_URL"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
+          
+          echo "Attempting to merge PR #$PR_NUMBER"
+          
+          # Try merge commit first
+          if gh pr merge --merge "$PR_NUMBER" --body "Auto-merged by Dependabot workflow"; then
+            echo "✅ PR #$PR_NUMBER merged successfully with merge commit"
+          # If that fails, try squash merge
+          elif gh pr merge --squash "$PR_NUMBER" --body "Auto-merged by Dependabot workflow"; then
+            echo "✅ PR #$PR_NUMBER merged successfully with squash"
+          # If that fails, try rebase merge
+          elif gh pr merge --rebase "$PR_NUMBER" --body "Auto-merged by Dependabot workflow"; then
+            echo "✅ PR #$PR_NUMBER merged successfully with rebase"
+          else
+            echo "❌ Failed to merge PR #$PR_NUMBER with all merge methods (merge, squash, rebase)"
+            echo "This could be due to:"
+            echo "  - Merge conflicts"
+            echo "  - Branch protection rules"
+            echo "  - Required status checks not passing"
+            echo "  - Insufficient permissions"
+            exit 1
           fi
         env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.PERSONAL_ACCESS_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
