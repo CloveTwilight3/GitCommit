@@ -31,16 +31,13 @@ jobs:
     - name: Clean workspace
       shell: pwsh
       run: |
-        Write-Host "🧹 Cleaning workspace..."
-        
-        # Remove any existing build artifacts
+        Write-Host "Cleaning workspace..."
         Remove-Item "chocolatey/*.nupkg" -Force -ErrorAction SilentlyContinue
         Remove-Item "chocolatey/tools" -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item "installers/nsis/*.exe" -Force -ErrorAction SilentlyContinue
         Remove-Item "GitCommit-*.zip" -Force -ErrorAction SilentlyContinue
         Remove-Item "GitCommit-Portable" -Recurse -Force -ErrorAction SilentlyContinue
-        
-        Write-Host "✅ Workspace cleaned"
+        Write-Host "Workspace cleaned"
         
     - name: Configure Git Bot
       shell: pwsh
@@ -52,238 +49,214 @@ jobs:
       shell: pwsh
       run: |
         $version = "${{ inputs.version }}"
-        Write-Host "📝 Updating version to: $version"
+        Write-Host "Updating version to: $version"
         
-        # Update version in PowerShell script
         $content = Get-Content 'src/GitCommit.ps1' -Raw
         $content = $content -replace 'GitCommit v[\d.]+', "GitCommit v$version"
         $content | Out-File 'src/GitCommit.ps1' -Encoding UTF8 -NoNewline
-        Write-Host "  ✅ Updated src/GitCommit.ps1"
+        Write-Host "Updated src/GitCommit.ps1"
         
-        # Update version in installer
         $installerContent = Get-Content 'installers/powershell/Install-GitCommit.ps1' -Raw
         $installerContent = $installerContent -replace 'GitCommit Installer v[\d.]+', "GitCommit Installer v$version"
         $installerContent | Out-File 'installers/powershell/Install-GitCommit.ps1' -Encoding UTF8 -NoNewline
-        Write-Host "  ✅ Updated installers/powershell/Install-GitCommit.ps1"
+        Write-Host "Updated installers/powershell/Install-GitCommit.ps1"
         
-        # Update version in uninstaller
         $uninstallerContent = Get-Content 'installers/powershell/Uninstall-GitCommit.ps1' -Raw
         $uninstallerContent = $uninstallerContent -replace 'GitCommit Uninstaller v[\d.]+', "GitCommit Uninstaller v$version"
         $uninstallerContent | Out-File 'installers/powershell/Uninstall-GitCommit.ps1' -Encoding UTF8 -NoNewline
-        Write-Host "  ✅ Updated installers/powershell/Uninstall-GitCommit.ps1"
+        Write-Host "Updated installers/powershell/Uninstall-GitCommit.ps1"
         
-        # Update version in Chocolatey nuspec
         [xml]$nuspec = Get-Content 'chocolatey/gitcommit.nuspec'
         $nuspec.package.metadata.version = "$version"
         $nuspec.Save((Resolve-Path 'chocolatey/gitcommit.nuspec').Path)
-        Write-Host "  ✅ Updated chocolatey/gitcommit.nuspec"
+        Write-Host "Updated chocolatey/gitcommit.nuspec"
         
-        # Update version in NSIS script
         $nsisContent = Get-Content 'installers/nsis/GitCommit-Installer.nsi' -Raw
         $nsisContent = $nsisContent -replace '!define PRODUCT_VERSION "[\d.]+"', "!define PRODUCT_VERSION `"$version`""
         $nsisContent | Out-File 'installers/nsis/GitCommit-Installer.nsi' -Encoding UTF8 -NoNewline
-        Write-Host "  ✅ Updated installers/nsis/GitCommit-Installer.nsi"
+        Write-Host "Updated installers/nsis/GitCommit-Installer.nsi"
         
     - name: Verify version updates
       shell: pwsh
       run: |
         $version = "${{ inputs.version }}"
-        Write-Host "🔍 Verifying version updates..."
+        Write-Host "Verifying version updates..."
         
-        # Check nuspec
         [xml]$nuspec = Get-Content 'chocolatey/gitcommit.nuspec'
         $nuspecVersion = $nuspec.package.metadata.version
-        Write-Host "  Chocolatey nuspec version: $nuspecVersion"
+        Write-Host "Chocolatey nuspec version: $nuspecVersion"
         
         if ($nuspecVersion -ne $version) {
-          Write-Host "❌ Version mismatch in nuspec! Expected $version but got $nuspecVersion"
+          Write-Host "Version mismatch in nuspec! Expected $version but got $nuspecVersion"
           exit 1
         }
         
-        # Check PowerShell script
         $scriptContent = Get-Content 'src/GitCommit.ps1' -Raw
         if ($scriptContent -notmatch "GitCommit v$version") {
-          Write-Host "❌ Version not found in GitCommit.ps1!"
+          Write-Host "Version not found in GitCommit.ps1!"
           exit 1
         }
-        Write-Host "  PowerShell script version: ✅"
+        Write-Host "PowerShell script version: OK"
         
-        # Check NSIS script
         $nsisContent = Get-Content 'installers/nsis/GitCommit-Installer.nsi' -Raw
         if ($nsisContent -notmatch "PRODUCT_VERSION `"$version`"") {
-          Write-Host "❌ Version not found in NSIS script!"
+          Write-Host "Version not found in NSIS script!"
           exit 1
         }
-        Write-Host "  NSIS script version: ✅"
-        
-        Write-Host "✅ All version updates verified successfully"
+        Write-Host "NSIS script version: OK"
+        Write-Host "All version updates verified successfully"
         
     - name: Install Chocolatey
       shell: pwsh
       run: |
-        Write-Host "📦 Installing Chocolatey..."
+        Write-Host "Installing Chocolatey..."
         Set-ExecutionPolicy Bypass -Scope Process -Force
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        Write-Host "✅ Chocolatey installed"
+        Write-Host "Chocolatey installed"
         
     - name: Install NSIS
       shell: pwsh
       run: |
-        Write-Host "📦 Installing NSIS..."
+        Write-Host "Installing NSIS..."
         choco install nsis -y
-        Write-Host "✅ NSIS installed"
+        Write-Host "NSIS installed"
       
     - name: Build Chocolatey Package
       shell: pwsh
       run: |
-        Write-Host "🔨 Building Chocolatey package..."
+        Write-Host "Building Chocolatey package..."
         
-        # Ensure tools directory exists and is clean
         if (Test-Path "chocolatey/tools") {
           Remove-Item "chocolatey/tools" -Recurse -Force
         }
         New-Item -ItemType Directory -Path "chocolatey/tools" -Force | Out-Null
         
-        # Copy source files to chocolatey tools
         Copy-Item "src/GitCommit.ps1" -Destination "chocolatey/tools/" -Force
         Copy-Item "src/GitCommit.bat" -Destination "chocolatey/tools/" -Force
-        Write-Host "  ✅ Copied source files to tools directory"
+        Write-Host "Copied source files to tools directory"
         
-        # Build package
         Push-Location chocolatey
         choco pack
         Pop-Location
         
-        # Verify package was created
         $packageFile = Get-ChildItem "chocolatey/*.nupkg" | Select-Object -First 1
         if (-not $packageFile) {
-          Write-Host "❌ No .nupkg file was created!"
+          Write-Host "No .nupkg file was created!"
           exit 1
         }
         
-        Write-Host "✅ Chocolatey package built: $($packageFile.Name)"
+        Write-Host "Chocolatey package built: $($packageFile.Name)"
         
     - name: Inspect package contents
       shell: pwsh
       run: |
-        Write-Host "🔍 Inspecting package contents..."
+        Write-Host "Inspecting package contents..."
         
         $packageFile = Get-ChildItem "chocolatey/*.nupkg" | Select-Object -First 1
-        Write-Host "  Package file: $($packageFile.Name)"
-        Write-Host "  Package size: $($packageFile.Length) bytes"
+        Write-Host "Package file: $($packageFile.Name)"
+        Write-Host "Package size: $($packageFile.Length) bytes"
         
-        # Extract and check version in the package
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $zip = [System.IO.Compression.ZipFile]::OpenRead($packageFile.FullName)
         
-        # Find and read nuspec
         $nuspecEntry = $zip.Entries | Where-Object { $_.Name -like "*.nuspec" } | Select-Object -First 1
         if ($nuspecEntry) {
           $reader = New-Object System.IO.StreamReader($nuspecEntry.Open())
           $nuspecContent = $reader.ReadToEnd()
           $reader.Close()
           
-          # Parse version from nuspec
           if ($nuspecContent -match '<version>([\d.]+)</version>') {
             $packageVersion = $matches[1]
-            Write-Host "  Package version: $packageVersion"
+            Write-Host "Package version: $packageVersion"
             
             if ($packageVersion -ne "${{ inputs.version }}") {
-              Write-Host "❌ Package version mismatch! Expected ${{ inputs.version }} but package contains $packageVersion"
+              Write-Host "Package version mismatch! Expected ${{ inputs.version }} but package contains $packageVersion"
               $zip.Dispose()
               exit 1
             }
           }
         }
         
-        # List all files in package
-        Write-Host "`n  Files in package:"
+        Write-Host "Files in package:"
         foreach ($entry in $zip.Entries) {
-          Write-Host "    - $($entry.FullName)"
+          Write-Host "  - $($entry.FullName)"
         }
         
         $zip.Dispose()
-        Write-Host "`n✅ Package inspection complete"
+        Write-Host "Package inspection complete"
     
     - name: Publish to Chocolatey
       shell: pwsh
       run: |
-        Write-Host "📤 Publishing to Chocolatey..."
+        Write-Host "Publishing to Chocolatey..."
         
-        # Set API key
         choco apikey --key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
         
-        # Push package to Chocolatey community repository
         $packageFile = Get-ChildItem "chocolatey/*.nupkg" | Select-Object -First 1
         if ($packageFile) {
           Write-Host "Publishing $($packageFile.Name) to Chocolatey..."
           
-          # Capture output
           $output = choco push $packageFile.FullName --source https://push.chocolatey.org/ 2>&1 | Out-String
           Write-Host $output
           
-          # Check if the push was successful
           if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Package published to Chocolatey!"
+            Write-Host "Package published to Chocolatey!"
           } elseif ($output -match "already exists") {
-            Write-Host "⚠️ Package version already exists on Chocolatey (may be in moderation queue)"
+            Write-Host "Package version already exists on Chocolatey (may be in moderation queue)"
             Write-Host "Check your account at: https://community.chocolatey.org/account"
             exit 1
           } else {
-            Write-Host "❌ Failed to publish package to Chocolatey!"
+            Write-Host "Failed to publish package to Chocolatey!"
             exit 1
           }
         } else {
-          Write-Host "❌ No .nupkg file found!"
+          Write-Host "No .nupkg file found!"
           exit 1
         }
         
     - name: Build NSIS Installer
       shell: pwsh
       run: |
-        Write-Host "🔨 Building NSIS installer..."
+        Write-Host "Building NSIS installer..."
         
         $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
         if (-not (Test-Path $nsisPath)) {
             $nsisPath = "$env:ProgramFiles\NSIS\makensis.exe"
         }
         
-        # Create license file if it doesn't exist
         if (-not (Test-Path "LICENSE")) {
-          Write-Host "  Creating LICENSE file..."
+          Write-Host "Creating LICENSE file..."
           $licenseText = @'
-MIT License
-
-Copyright (c) 2025 Clove Twilight
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-'@
+        MIT License
+        
+        Copyright (c) 2025 Clove Twilight
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        '@
           $licenseText | Out-File "LICENSE" -Encoding UTF8
         }
         
-        # Copy license for NSIS
         Copy-Item "LICENSE" -Destination "installers/nsis/" -Force
         
-        # Create a simple icon for NSIS if it doesn't exist
         if (-not (Test-Path "installers/nsis/icon.ico")) {
-          Write-Host "  Creating icon file..."
+          Write-Host "Creating icon file..."
           $iconData = @(
             0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x00, 0x00, 0x01, 0x00, 0x08, 0x00, 0x68, 0x05,
             0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00,
@@ -293,30 +266,27 @@ SOFTWARE.
           [System.IO.File]::WriteAllBytes("installers/nsis/icon.ico", $iconData)
         }
         
-        # Build installer
-        Write-Host "  Compiling NSIS installer..."
+        Write-Host "Compiling NSIS installer..."
         & $nsisPath "installers/nsis/GitCommit-Installer.nsi"
         
         if ($LASTEXITCODE -ne 0) {
-          Write-Host "❌ NSIS compilation failed!"
+          Write-Host "NSIS compilation failed!"
           exit 1
         }
         
-        # Verify installer was created
         $installerFile = Get-ChildItem "installers/nsis/*.exe" | Select-Object -First 1
         if (-not $installerFile) {
-          Write-Host "❌ No installer .exe file was created!"
+          Write-Host "No installer .exe file was created!"
           exit 1
         }
         
-        Write-Host "✅ NSIS installer built: $($installerFile.Name)"
+        Write-Host "NSIS installer built: $($installerFile.Name)"
         
     - name: Create ZIP Archive
       shell: pwsh
       run: |
-        Write-Host "📦 Creating portable ZIP archive..."
+        Write-Host "Creating portable ZIP archive..."
         
-        # Create portable version
         New-Item -ItemType Directory -Path "GitCommit-Portable" -Force | Out-Null
         Copy-Item "src/GitCommit.ps1" -Destination "GitCommit-Portable/"
         Copy-Item "src/GitCommit.bat" -Destination "GitCommit-Portable/"
@@ -325,34 +295,33 @@ SOFTWARE.
           Copy-Item "LICENSE" -Destination "GitCommit-Portable/"
         }
         
-        # Create ZIP
         $zipName = "GitCommit-${{ inputs.version }}-Portable.zip"
         Compress-Archive -Path "GitCommit-Portable/*" -DestinationPath $zipName -Force
         
         if (-not (Test-Path $zipName)) {
-          Write-Host "❌ Failed to create ZIP archive!"
+          Write-Host "Failed to create ZIP archive!"
           exit 1
         }
         
-        Write-Host "✅ Portable ZIP created: $zipName"
+        Write-Host "Portable ZIP created: $zipName"
         
     - name: List all artifacts
       shell: pwsh
       run: |
-        Write-Host "📋 Final artifacts:"
+        Write-Host "Final artifacts:"
         
         $nupkg = Get-ChildItem "chocolatey/*.nupkg" | Select-Object -First 1
         $installer = Get-ChildItem "installers/nsis/*.exe" | Select-Object -First 1
         $zip = Get-ChildItem "*.zip" | Select-Object -First 1
         
-        Write-Host "  1. Chocolatey package: $($nupkg.Name) ($($nupkg.Length) bytes)"
-        Write-Host "  2. NSIS installer: $($installer.Name) ($($installer.Length) bytes)"
-        Write-Host "  3. Portable ZIP: $($zip.Name) ($($zip.Length) bytes)"
+        Write-Host "1. Chocolatey package: $($nupkg.Name) ($($nupkg.Length) bytes)"
+        Write-Host "2. NSIS installer: $($installer.Name) ($($installer.Length) bytes)"
+        Write-Host "3. Portable ZIP: $($zip.Name) ($($zip.Length) bytes)"
         
     - name: Commit version changes
       shell: pwsh
       run: |
-        Write-Host "📝 Committing version changes..."
+        Write-Host "Committing version changes..."
         
         git add .
         git diff --staged --quiet || git commit -m "Release v${{ inputs.version }}"
@@ -360,7 +329,7 @@ SOFTWARE.
         git push origin main
         git push origin "v${{ inputs.version }}"
         
-        Write-Host "✅ Changes committed and tagged"
+        Write-Host "Changes committed and tagged"
         
     - name: Create GitHub Release
       uses: ncipollo/release-action@v1
@@ -372,16 +341,16 @@ SOFTWARE.
           
           ### Installation Options:
           
-          **🍫 Chocolatey (Recommended):**
+          **Chocolatey (Recommended):**
           ```bash
           choco install gitcommit
           ```
           *Note: It may take a few minutes for the package to become available after release.*
           
-          **💾 Windows Installer:**
+          **Windows Installer:**
           Download and run `GitCommit-${{ inputs.version }}-Setup.exe`
           
-          **📦 Portable Version:**
+          **Portable Version:**
           Download and extract `GitCommit-${{ inputs.version }}-Portable.zip`
           
           ### Usage:
@@ -394,7 +363,6 @@ SOFTWARE.
           - Interactive commit message prompts  
           - Error handling and validation
           - Cross-platform PowerShell support
-          
         artifacts: |
           chocolatey/*.nupkg
           installers/nsis/GitCommit-${{ inputs.version }}-Setup.exe
