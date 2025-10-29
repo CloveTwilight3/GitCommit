@@ -1,6 +1,6 @@
 #Requires -RunAsAdministrator
 
-# GitCommit Installer v1.0.0
+# GitCommit Installer v1.1.0
 # Professional installer for GitCommit automation tool
 
 param(
@@ -13,7 +13,7 @@ function Show-Header {
     ╔══════════════════════════════════════╗
     ║                                      ║
     ║         GitCommit Installer          ║
-    ║           Version 1.0.0              ║
+    ║           Version 1.1.0              ║
     ║                                      ║
     ║    Automated Git Workflow Tool       ║
     ║                                      ║

@@ -1,6 +1,6 @@
 #Requires -RunAsAdministrator
 
-# GitCommit Uninstaller v1.0.0
+# GitCommit Uninstaller v1.1.0
 param(
     [string]$InstallPath = "$env:ProgramFiles\GitCommit"
 )
@@ -11,7 +11,7 @@ function Show-Header {
     ╔══════════════════════════════════════╗
     ║                                      ║
     ║       GitCommit Uninstaller          ║
-    ║           Version 1.0.0              ║
+    ║           Version 1.1.0              ║
     ║                                      ║
     ╚══════════════════════════════════════╝
 "@ -ForegroundColor Red
