@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
+    <iconUrl>https://www.yuri-lover.win/cdn/assests/gitcommit/icon.png</iconUrl>
     <id>gitcommit</id>
     <version>1.1.0</version>
     <packageSourceUrl>https://github.com/CloveTwilight3/GitCommit</packageSourceUrl>
