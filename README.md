@@ -1,3 +1,5 @@
+![Chocolatey Version](https://img.shields.io/chocolatey/v/gitcommit)
+
 ## Installation
 
 ### Option 1: Chocolatey (Recommended)
@@ -37,3 +39,4 @@ choco install gitcommit
 <a href="https://github.com/CloveTwilight3/GitCommit/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=CloveTwilight3/GitCommit" />
 </a>
+
