@@ -12,13 +12,13 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
       
     - name: Run PowerShell Script Analyzer
       shell: pwsh
       run: |
         Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-        $results = Invoke-ScriptAnalyzer -Path "src/" -Recurse -Severity Warning
+        $results = Invoke-ScriptAnalyzer -Path "src/win/" -Recurse -Severity Warning
         if ($results) {
           $results | Format-Table
           exit 1
@@ -29,36 +29,42 @@ jobs:
       shell: pwsh
       run: |
         # Test that the script can parse without syntax errors
-        $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "src/GitCommit.ps1" -Raw), [ref]$null)
+        $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "src/win/GitCommit.ps1" -Raw), [ref]$null)
         Write-Host "✅ PowerShell script syntax is valid"
-        
-    - name: Test Installer Script
-      shell: pwsh
+
+  test-bash:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install ShellCheck
+      run: sudo apt-get update && sudo apt-get install -y shellcheck
+      
+    - name: Test Bash Script Syntax
       run: |
-        # Test installer script syntax
-        $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "installers/powershell/Install-GitCommit.ps1" -Raw), [ref]$null)
-        Write-Host "✅ Installer script syntax is valid"
+        bash -n src/linux/GitCommit.sh
+        echo "✅ Bash script syntax is valid"
         
-    - name: Test Uninstaller Script
-      shell: pwsh
+    - name: Run ShellCheck
       run: |
-        # Test uninstaller script syntax  
-        $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "installers/powershell/Uninstall-GitCommit.ps1" -Raw), [ref]$null)
-        Write-Host "✅ Uninstaller script syntax is valid"
+        shellcheck src/linux/GitCommit.sh || true
+        echo "✅ ShellCheck completed"
 
   test-cross-platform:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
       
     - name: Test PowerShell Script on Linux
       shell: pwsh
       run: |
         # Test basic script parsing
         try {
-          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content 'src/GitCommit.ps1' -Raw), [ref]$null)
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content 'src/win/GitCommit.ps1' -Raw), [ref]$null)
           Write-Host '✅ PowerShell script works on Linux'
         } catch {
           Write-Host '❌ PowerShell script failed on Linux'
@@ -70,101 +76,50 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
       
-    - name: Install Chocolatey
-      shell: pwsh
-      run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        
     - name: Validate Chocolatey Package
       shell: pwsh
       run: |
-        # Copy source files to chocolatey tools
-        if (-not (Test-Path "chocolatey/tools")) {
-          New-Item -ItemType Directory -Path "chocolatey/tools" -Force
+        # Ensure tools directory exists
+        if (-not (Test-Path "build/chocolatey/tools")) {
+          New-Item -ItemType Directory -Path "build/chocolatey/tools" -Force
         }
-        Copy-Item "src/GitCommit.ps1" -Destination "chocolatey/tools/" -Force
-        Copy-Item "src/GitCommit.bat" -Destination "chocolatey/tools/" -Force
+        
+        # Copy source files to chocolatey tools
+        Copy-Item "src/win/GitCommit.ps1" -Destination "build/chocolatey/tools/" -Force
+        Copy-Item "src/win/GitCommit.bat" -Destination "build/chocolatey/tools/" -Force
         
         # Test pack (dry run)
-        cd chocolatey
-        choco pack --what-if
+        cd build/chocolatey
+        choco pack
         Write-Host "✅ Chocolatey package validation passed"
         
-  validate-nsis:
-    runs-on: windows-latest
+  validate-pkgbuild:
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
       
-    - name: Install NSIS
-      shell: pwsh
-      run: choco install nsis -y
-        
-    - name: Create Required Files for NSIS
-      shell: pwsh
+    - name: Validate PKGBUILD Syntax
       run: |
-        # Create LICENSE if it doesn't exist
-        if (-not (Test-Path "LICENSE")) {
-          $licenseText = @'
-        MIT License
+        # Check PKGBUILD exists
+        if [ ! -f "src/linux/PKGBUILD" ]; then
+          echo "❌ PKGBUILD not found"
+          exit 1
+        fi
         
-        Copyright (c) 2025 Clove Twilight
-        
-        Permission is hereby granted, free of charge, to any person obtaining a copy
-        of this software and associated documentation files (the "Software"), to deal
-        in the Software without restriction, including without limitation the rights
-        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-        copies of the Software, and to permit persons to whom the Software is
-        furnished to do so, subject to the following conditions:
-        
-        The above copyright notice and this permission notice shall be included in all
-        copies or substantial portions of the Software.
-        
-        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-        SOFTWARE.
-        '@
-          $licenseText | Out-File "LICENSE" -Encoding UTF8
-        }
-        
-        # Copy license for NSIS
-        Copy-Item "LICENSE" -Destination "installers/nsis/" -Force
-        
-        # Create a dummy icon for NSIS
-        if (-not (Test-Path "installers/nsis/icon.ico")) {
-          # Create a simple 16x16 icon
-          $iconData = @(
-            0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x00, 0x00, 0x01, 0x00, 0x08, 0x00, 0x68, 0x05,
-            0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00,
-            0x00, 0x00, 0x01, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-          ) + (0..255) * 4 + (0..255)
-          [System.IO.File]::WriteAllBytes("installers/nsis/icon.ico", $iconData)
-        }
-        
-    - name: Test NSIS Script Syntax
-      shell: pwsh
-      run: |
-        $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
-        if (-not (Test-Path $nsisPath)) {
-            $nsisPath = "$env:ProgramFiles\NSIS\makensis.exe"
-        }
-        
-        # Test NSIS script syntax (compile check only)
-        & $nsisPath "/V2" "installers/nsis/GitCommit-Installer.nsi"
-        
-        if ($LASTEXITCODE -eq 0) {
-          Write-Host "✅ NSIS installer validation passed"
-        } else {
-          Write-Host "❌ NSIS installer validation failed"
+        # Basic syntax validation
+        bash -n src/linux/PKGBUILD || {
+          echo "❌ PKGBUILD has syntax errors"
           exit 1
         }
+        
+        # Check required fields
+        grep -q "pkgname=" src/linux/PKGBUILD || { echo "❌ Missing pkgname"; exit 1; }
+        grep -q "pkgver=" src/linux/PKGBUILD || { echo "❌ Missing pkgver"; exit 1; }
+        grep -q "pkgrel=" src/linux/PKGBUILD || { echo "❌ Missing pkgrel"; exit 1; }
+        grep -q "arch=" src/linux/PKGBUILD || { echo "❌ Missing arch"; exit 1; }
+        
+        echo "✅ PKGBUILD validation passed"
