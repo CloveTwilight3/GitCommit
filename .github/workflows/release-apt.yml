@@ -9,7 +9,41 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish-to-ppa:
+  # First job: Create the orig.tar.gz once
+  create-source-tarball:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create orig.tar.gz
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          PKGDIR="gitcommit-${VERSION}"
+          
+          mkdir "$PKGDIR"
+          install -m 0755 src/linux/gitcommit.sh "$PKGDIR/gitcommit"
+          
+          tar czf "gitcommit_${VERSION}.orig.tar.gz" "$PKGDIR"
+
+      - name: Upload orig.tar.gz artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-tarball
+          path: gitcommit_*.orig.tar.gz
+          retention-days: 1
+
+  # Second job: Build packages for each distro
+  build-packages:
+    needs: create-source-tarball
     runs-on: ubuntu-latest
 
     strategy:
@@ -21,13 +55,12 @@ jobs:
           - noble
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Get version from tag
-        id: get_version
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Download orig.tar.gz artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: source-tarball
 
       - name: Install build dependencies
         run: |
@@ -36,7 +69,6 @@ jobs:
             devscripts \
             debhelper \
             gnupg \
-            dput \
             build-essential
 
       - name: Import GPG key
@@ -71,18 +103,15 @@ jobs:
 
       - name: Create Debian source package
         run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
+          VERSION=${{ needs.create-source-tarball.outputs.version }}
           DISTRO=${{ matrix.distro }}
-          PPA_VERSION="${VERSION}-1~${DISTRO}1"
+          RUN_NUMBER=${{ github.run_number }}
+          PPA_VERSION="${VERSION}-${RUN_NUMBER}~${DISTRO}1"
 
           PKGDIR="gitcommit-${VERSION}"
-          mkdir "$PKGDIR"
-          cd "$PKGDIR"
-
-          install -m 0755 ../src/linux/gitcommit.sh gitcommit
-
-          cd ..
-          tar czf gitcommit_${VERSION}.orig.tar.gz "$PKGDIR"
+          
+          # Extract the orig.tar.gz we downloaded
+          tar xzf "gitcommit_${VERSION}.orig.tar.gz"
           cd "$PKGDIR"
 
           mkdir -p debian/source
@@ -139,15 +168,63 @@ jobs:
           DEBEMAIL: "clovetwilight3@outlook.com"
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
+          VERSION=${{ needs.create-source-tarball.outputs.version }}
           cd "gitcommit-${VERSION}"
 
           debuild -S -sa -k"$KEY_ID"
 
-      - name: Upload to Launchpad PPA
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-packages-${{ matrix.distro }}
+          path: |
+            *.changes
+            *.dsc
+            *.tar.xz
+            *.buildinfo
+          retention-days: 1
+
+  # Third job: Upload all packages to PPA
+  upload-to-ppa:
+    needs: [create-source-tarball, build-packages]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: packages
+
+      - name: Install dput
         run: |
-          dput ppa:clovetwilight3/gitcommit *_source.changes
+          sudo apt-get update
+          sudo apt-get install -y dput
+
+      - name: Organize packages
+        run: |
+          # Create upload directory
+          mkdir -p upload
+          
+          # Move all package files to upload directory
+          find packages -name "*.changes" -exec mv {} upload/ \;
+          find packages -name "*.dsc" -exec mv {} upload/ \;
+          find packages -name "*.tar.xz" -exec mv {} upload/ \;
+          find packages -name "*.tar.gz" -exec mv {} upload/ \;
+          find packages -name "*.buildinfo" -exec mv {} upload/ \;
+          
+          # List what we're uploading
+          echo "Files to upload:"
+          ls -lah upload/
+
+      - name: Upload all packages to Launchpad PPA
+        run: |
+          cd upload
+          for changes_file in *.changes; do
+            echo "Uploading $changes_file..."
+            dput ppa:clovetwilight3/gitcommit "$changes_file"
+          done
 
       - name: Success message
         run: |
-          echo "Uploaded gitcommit ${{ steps.get_version.outputs.VERSION }} for Ubuntu ${{ matrix.distro }}"
+          echo "Successfully uploaded all packages for gitcommit ${{ needs.create-source-tarball.outputs.version }}"
+          echo "Uploaded for: focal, jammy, noble"
