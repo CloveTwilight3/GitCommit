@@ -7,6 +7,11 @@ on:
     paths:
       - "src/linux/**"
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.1.2)'
+        required: true
+        type: string
 
 jobs:
   # First job: Create the orig.tar.gz once
@@ -21,8 +26,15 @@ jobs:
       - name: Get version from tag
         id: get_version
         run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="dev"
+          fi
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $VERSION"
 
       - name: Create orig.tar.gz
         run: |
