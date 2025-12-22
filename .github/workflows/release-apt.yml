@@ -142,7 +142,7 @@ jobs:
           VERSION=${{ steps.get_version.outputs.VERSION }}
           cd "gitcommit-${VERSION}"
 
-          debuild -S -sa -k"$KEY_ID" --no-tgz-check
+          debuild -S -sa -k"$KEY_ID"
 
       - name: Upload to Launchpad PPA
         run: |
