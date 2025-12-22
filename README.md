@@ -1,5 +1,12 @@
-![Chocolatey Version](https://img.shields.io/chocolatey/v/gitcommit)
-![AUR Version](https://img.shields.io/aur/version/gitcommit?logo=archlinux)
+# GitCommit
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/CloveTwilight3/GitCommit/refs/heads/main/assets/icon.png" alt="GitCommit Logo" width="128" height="128">
+
+<img src="https://img.shields.io/chocolatey/v/gitcommit">
+<img src="https://img.shields.io/aur/version/gitcommit?logo=archlinux">
+
+</div>
 
 ## Installation
 
@@ -33,7 +40,9 @@ Install from yay using
 yay -S gitcommit
 ```
 ## Contributors
+<div align="center">
 <a href="https://github.com/CloveTwilight3/GitCommit/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=CloveTwilight3/GitCommit" />
 </a>
 
+</div>
