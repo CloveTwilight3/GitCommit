@@ -128,12 +128,19 @@ jobs:
 
           mkdir -p debian/source
 
+          # Use debhelper-compat 12 for focal, 13 for newer
+          if [ "$DISTRO" = "focal" ]; then
+            DEBHELPER_COMPAT="12"
+          else
+            DEBHELPER_COMPAT="13"
+          fi
+
           cat > debian/control << EOF
           Source: gitcommit
           Section: utils
           Priority: optional
           Maintainer: Clove Twilight <clovetwilight3@outlook.com>
-          Build-Depends: debhelper-compat (= 13)
+          Build-Depends: debhelper-compat (= ${DEBHELPER_COMPAT})
           Standards-Version: 4.6.2
 
           Package: gitcommit
