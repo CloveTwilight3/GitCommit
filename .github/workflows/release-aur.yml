@@ -75,13 +75,30 @@ jobs:
           
           cat PKGBUILD
       
-      - name: Generate .SRCINFO
+      - name: Generate .SRCINFO manually
         run: |
-          # Install makepkg dependencies
-          sudo pacman -Syu --noconfirm base-devel
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          SCRIPT_SHA=${{ steps.checksums.outputs.SCRIPT_SHA }}
+          LICENSE_SHA=${{ steps.checksums.outputs.LICENSE_SHA }}
           
-          # Generate .SRCINFO from PKGBUILD
-          makepkg --printsrcinfo > .SRCINFO
+          # Create .SRCINFO manually
+          cat > .SRCINFO << EOF
+          pkgbase = gitcommit
+          	pkgdesc = Automated Git workflow tool
+          	pkgver = ${VERSION}
+          	pkgrel = 1
+          	url = https://github.com/CloveTwilight3/GitCommit
+          	arch = any
+          	license = MIT
+          	depends = git
+          	depends = bash
+          	source = gitcommit.sh::https://raw.githubusercontent.com/CloveTwilight3/GitCommit/v${VERSION}/src/linux/gitcommit.sh
+          	source = LICENSE::https://raw.githubusercontent.com/CloveTwilight3/GitCommit/v${VERSION}/LICENSE
+          	sha256sums = ${SCRIPT_SHA}
+          	sha256sums = ${LICENSE_SHA}
+          
+          pkgname = gitcommit
+          EOF
           
           cat .SRCINFO
       

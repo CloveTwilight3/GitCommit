@@ -24,7 +24,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y devscripts debhelper dh-make gnupg
+          sudo apt-get install -y devscripts debhelper dh-make gnupg dput
       
       - name: Import GPG key
         env:
@@ -47,11 +47,16 @@ jobs:
           cp ../src/linux/gitcommit.sh gitcommit
           chmod +x gitcommit
           
+          # Create orig tarball (required by Debian)
+          cd ..
+          tar czf gitcommit_${VERSION}.orig.tar.gz gitcommit-${VERSION}
+          cd gitcommit-${VERSION}
+          
           # Create debian directory
           mkdir -p debian
           
           # Create control file
-          cat > debian/control << EOF
+          cat > debian/control << EOFCTRL
           Source: gitcommit
           Section: utils
           Priority: optional
@@ -72,19 +77,19 @@ jobs:
             - Optional pull skipping
             - Interactive commit message input
             - Colored terminal output
-          EOF
+          EOFCTRL
           
           # Create changelog
-          cat > debian/changelog << EOF
+          cat > debian/changelog << EOFCHG
           gitcommit (${VERSION}-1) jammy; urgency=medium
           
             * New upstream release
           
            -- Clove Twilight <clovetwilight3@outlook.com>  $(date -R)
-          EOF
+          EOFCHG
           
           # Create copyright
-          cat > debian/copyright << EOF
+          cat > debian/copyright << EOFCPY
           Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
           Upstream-Name: gitcommit
           Source: https://github.com/CloveTwilight3/GitCommit
@@ -111,17 +116,17 @@ jobs:
            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
            SOFTWARE.
-          EOF
+          EOFCPY
           
           # Create rules file
-          cat > debian/rules << 'EOFR'
+          cat > debian/rules << 'EOFRULES'
           #!/usr/bin/make -f
           %:
           	dh $@
           
           override_dh_auto_install:
           	install -D -m 0755 gitcommit $(CURDIR)/debian/gitcommit/usr/bin/gitcommit
-          EOFR
+          EOFRULES
           chmod +x debian/rules
           
           # Create compat file
@@ -129,23 +134,20 @@ jobs:
           
           # Create source/format
           mkdir -p debian/source
-          echo "3.0 (native)" > debian/source/format
+          echo "3.0 (quilt)" > debian/source/format
       
       - name: Build source package
         env:
           DEBFULLNAME: "Clove Twilight"
           DEBEMAIL: "clovetwilight3@outlook.com"
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           cd gitcommit-${VERSION}
           
-          # Build source package
-          debuild -S -sa -k$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2 | head -n1)
+          # Build source package (unsigned for now, will be signed by debuild)
+          debuild -S -sa
       
       - name: Upload to Launchpad PPA
-        env:
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           

@@ -47,7 +47,7 @@ jobs:
         run: |
           $version = "${{ steps.get_version.outputs.VERSION }}"
           cd src/win
-          choco push "gitcommit.$version.nupkg" --source https://push.chocolatey.org/ --api-key $env:CHOCO_API_KEY
+          choco push "gitcommit.$version.nupkg" --source https://push.chocolatey.org/ --api-key="$env:CHOCO_API_KEY"
       
       - name: Notify success
         if: success()
