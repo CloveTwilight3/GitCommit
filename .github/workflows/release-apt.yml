@@ -114,14 +114,14 @@ jobs:
           EOF
           
           # Create rules file
-          cat > debian/rules << 'EOF'
+          cat > debian/rules << 'EOFR'
           #!/usr/bin/make -f
           %:
           	dh $@
           
           override_dh_auto_install:
           	install -D -m 0755 gitcommit $(CURDIR)/debian/gitcommit/usr/bin/gitcommit
-          EOF
+          EOFR
           chmod +x debian/rules
           
           # Create compat file

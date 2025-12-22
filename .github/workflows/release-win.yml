@@ -26,14 +26,19 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.get_version.outputs.VERSION }}"
-          $nuspecPath = "build/chocolatey/gitcommit.nuspec"
+          $nuspecPath = "src/win/gitcommit.nuspec"
           (Get-Content $nuspecPath) -replace '<version>.*</version>', "<version>$version</version>" | Set-Content $nuspecPath
       
       - name: Build Chocolatey package
         shell: pwsh
         run: |
-          cd build/chocolatey
-          choco pack
+          # Create tools directory
+          New-Item -ItemType Directory -Path "src/win/tools" -Force | Out-Null
+          Copy-Item "src/win/GitCommit.ps1" -Destination "src/win/tools/"
+          Copy-Item "src/win/GitCommit.bat" -Destination "src/win/tools/"
+          
+          cd src/win
+          choco pack gitcommit.nuspec
       
       - name: Publish to Chocolatey
         shell: pwsh
@@ -41,7 +46,7 @@ jobs:
           CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
         run: |
           $version = "${{ steps.get_version.outputs.VERSION }}"
-          cd build/chocolatey
+          cd src/win
           choco push "gitcommit.$version.nupkg" --source https://push.chocolatey.org/ --api-key $env:CHOCO_API_KEY
       
       - name: Notify success
