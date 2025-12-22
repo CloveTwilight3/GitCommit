@@ -81,18 +81,23 @@ jobs:
     - name: Validate Chocolatey Package
       shell: pwsh
       run: |
-        # Ensure tools directory exists
-        if (-not (Test-Path "build/chocolatey/tools")) {
-          New-Item -ItemType Directory -Path "build/chocolatey/tools" -Force
+        # Validate nuspec file exists
+        if (-not (Test-Path "src/win/gitcommit.nuspec")) {
+          Write-Host "❌ gitcommit.nuspec not found"
+          exit 1
         }
         
-        # Copy source files to chocolatey tools
-        Copy-Item "src/win/GitCommit.ps1" -Destination "build/chocolatey/tools/" -Force
-        Copy-Item "src/win/GitCommit.bat" -Destination "build/chocolatey/tools/" -Force
+        # Create tools directory
+        New-Item -ItemType Directory -Path "src/win/tools" -Force | Out-Null
         
-        # Test pack (dry run)
-        cd build/chocolatey
-        choco pack
+        # Copy files to tools for packaging
+        Copy-Item "src/win/GitCommit.ps1" -Destination "src/win/tools/" -Force
+        Copy-Item "src/win/GitCommit.bat" -Destination "src/win/tools/" -Force
+        
+        # Test pack
+        cd src/win
+        choco pack gitcommit.nuspec
+        
         Write-Host "✅ Chocolatey package validation passed"
         
   validate-pkgbuild:
