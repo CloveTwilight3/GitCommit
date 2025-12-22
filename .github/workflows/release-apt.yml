@@ -24,7 +24,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y devscripts debhelper dh-make gnupg dput
+          sudo apt-get install -y devscripts debhelper dh-make gnupg dput build-essential
       
       - name: Import GPG key
         env:
