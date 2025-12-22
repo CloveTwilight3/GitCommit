@@ -182,7 +182,7 @@ jobs:
           chmod +x /tmp/gpg-sign.sh
           
           # Build and sign the source package
-          debuild -S -sa -k$KEY_ID --no-tgz-check -p/tmp/gpg-sign.sh
+          debuild -S -sa -k$KEY_ID -p/tmp/gpg-sign.sh
       
       - name: Upload to Launchpad PPA
         run: |
