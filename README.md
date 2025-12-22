@@ -3,9 +3,13 @@
 
 <img src="https://raw.githubusercontent.com/CloveTwilight3/GitCommit/refs/heads/main/assets/icon.png" alt="GitCommit Logo" width="128" height="128">
 
+<div>
 <img src="https://img.shields.io/chocolatey/v/gitcommit">
 <img src="https://img.shields.io/aur/version/gitcommit?logo=archlinux">
-
+<img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/ci.yml/badge.svg">
+<img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/release-win.yml/badge.svg">
+<img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/release-apt.yml/badge.svg">
+<img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/release-aur.yml/badge.svg">
 </div>
 
 ## Installation
