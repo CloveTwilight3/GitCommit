@@ -44,12 +44,12 @@ jobs:
       
     - name: Test Bash Script Syntax
       run: |
-        bash -n src/linux/GitCommit.sh
+        bash -n src/linux/gitcommit.sh
         echo "✅ Bash script syntax is valid"
         
     - name: Run ShellCheck
       run: |
-        shellcheck src/linux/GitCommit.sh || true
+        shellcheck src/linux/gitcommit.sh || true
         echo "✅ ShellCheck completed"
 
   test-cross-platform:
