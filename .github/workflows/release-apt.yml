@@ -1,0 +1,159 @@
+name: Release to Launchpad PPA
+
+on:
+  push:
+    tags:
+      - 'v*'
+    paths:
+      - 'src/linux/**'
+  workflow_dispatch:
+
+jobs:
+  publish-to-ppa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y devscripts debhelper dh-make gnupg
+      
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
+          gpg-connect-agent reloadagent /bye
+      
+      - name: Create source package structure
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          
+          # Create source directory
+          mkdir -p gitcommit-${VERSION}
+          cd gitcommit-${VERSION}
+          
+          # Copy source files
+          cp ../src/linux/gitcommit.sh gitcommit
+          chmod +x gitcommit
+          
+          # Create debian directory
+          mkdir -p debian
+          
+          # Create control file
+          cat > debian/control << EOF
+          Source: gitcommit
+          Section: utils
+          Priority: optional
+          Maintainer: Clove Twilight <clovetwilight3@outlook.com>
+          Build-Depends: debhelper (>= 9)
+          Standards-Version: 3.9.8
+          
+          Package: gitcommit
+          Architecture: all
+          Depends: git (>= 2.0)
+          Description: Automated Git workflow tool
+           GitCommit is a command-line tool that automates common Git workflows
+           including branch switching, pulling, staging, committing, and pushing.
+           .
+           Features:
+            - Automated git add, commit, and push workflow
+            - Branch switching support
+            - Optional pull skipping
+            - Interactive commit message input
+            - Colored terminal output
+          EOF
+          
+          # Create changelog
+          cat > debian/changelog << EOF
+          gitcommit (${VERSION}-1) jammy; urgency=medium
+          
+            * New upstream release
+          
+           -- Clove Twilight <clovetwilight3@outlook.com>  $(date -R)
+          EOF
+          
+          # Create copyright
+          cat > debian/copyright << EOF
+          Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+          Upstream-Name: gitcommit
+          Source: https://github.com/CloveTwilight3/GitCommit
+          
+          Files: *
+          Copyright: 2025 Clove Twilight
+          License: MIT
+          
+          License: MIT
+           Permission is hereby granted, free of charge, to any person obtaining a copy
+           of this software and associated documentation files (the "Software"), to deal
+           in the Software without restriction, including without limitation the rights
+           to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+           copies of the Software, and to permit persons to whom the Software is
+           furnished to do so, subject to the following conditions:
+           .
+           The above copyright notice and this permission notice shall be included in all
+           copies or substantial portions of the Software.
+           .
+           THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+           IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+           FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+           AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+           LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+           OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+           SOFTWARE.
+          EOF
+          
+          # Create rules file
+          cat > debian/rules << 'EOF'
+          #!/usr/bin/make -f
+          %:
+          	dh $@
+          
+          override_dh_auto_install:
+          	install -D -m 0755 gitcommit $(CURDIR)/debian/gitcommit/usr/bin/gitcommit
+          EOF
+          chmod +x debian/rules
+          
+          # Create compat file
+          echo "9" > debian/compat
+          
+          # Create source/format
+          mkdir -p debian/source
+          echo "3.0 (native)" > debian/source/format
+      
+      - name: Build source package
+        env:
+          DEBFULLNAME: "Clove Twilight"
+          DEBEMAIL: "clovetwilight3@outlook.com"
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          cd gitcommit-${VERSION}
+          
+          # Build source package
+          debuild -S -sa -k$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2 | head -n1)
+      
+      - name: Upload to Launchpad PPA
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          
+          # Upload to PPA
+          dput ppa:clovetwilight3/gitcommit gitcommit_${VERSION}-1_source.changes
+      
+      - name: Notify success
+        if: success()
+        run: |
+          echo "Successfully uploaded GitCommit v${{ steps.get_version.outputs.VERSION }} to Launchpad PPA!"
+          echo "PPA: https://launchpad.net/~clovetwilight3/+archive/ubuntu/gitcommit"
