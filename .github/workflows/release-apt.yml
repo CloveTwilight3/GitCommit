@@ -47,7 +47,7 @@ jobs:
           tar czf "gitcommit_${VERSION}.orig.tar.gz" "$PKGDIR"
 
       - name: Upload orig.tar.gz artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: source-tarball
           path: gitcommit_*.orig.tar.gz
@@ -193,7 +193,7 @@ jobs:
           debuild -S -sa -k"$KEY_ID"
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: deb-packages-${{ matrix.distro }}
           path: |
