@@ -3,7 +3,7 @@ Version:        1.1.3
 Release:        1%{?dist}
 Summary:        Automated Git workflow tool
 
-License:        Estrogen-Source-Available-1.2
+License:        MIT
 URL:            https://github.com/CloveTwilight3/GitCommit
 Source0:        https://github.com/CloveTwilight3/GitCommit/archive/refs/tags/v%{version}.tar.gz
 
