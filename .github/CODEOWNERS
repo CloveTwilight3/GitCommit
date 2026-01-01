@@ -5,6 +5,4 @@
 /.github/ @CloveTwilight3
 
 # Build and installer files  
-/build/ @CloveTwilight3
-/installers/ @CloveTwilight3
-/chocolatey/ @CloveTwilight3
+/src/ @CloveTwilight3

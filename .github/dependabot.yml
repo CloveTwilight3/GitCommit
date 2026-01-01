@@ -10,9 +10,9 @@ updates:
       prefix: "ci"
       include: "scope"
     reviewers:
-      - "CloveTwilightBOT"
+      - "EstrogenHRT"
     assignees:
-      - "CloveTwilightBOT"
+      - "EstrogenHRT"
     labels:
       - "updates"
       - "dependencies"
@@ -27,27 +27,9 @@ updates:
       prefix: "deps"
       include: "scope"
     reviewers:
-      - "CloveTwilightBOT"
+      - "EstrogenHRT"
     assignees:
-      - "CloveTwilightBOT"
+      - "EstrogenHRT"
     labels:
       - "updates"
       - "dependencies"
-  
-  # Check for Chocolatey package updates
-  - package-ecosystem: "nuget"
-    directory: "/chocolatey"
-    schedule:
-      interval: "daily"
-      time: "09:00"
-    commit-message:
-      prefix: "choco"
-      include: "scope"
-    reviewers:
-      - "CloveTwilightBOT"
-    assignees:
-      - "CloveTwilightBOT"
-    labels:
-      - "updates"
-      - "dependencies"
-      - "chocolatey"
