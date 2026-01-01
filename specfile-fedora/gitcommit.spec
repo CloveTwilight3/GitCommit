@@ -27,7 +27,7 @@ with your message, and pushing to origin.
 install -Dm755 src/linux/gitcommit.sh %{buildroot}%{_bindir}/gitcommit
 
 %files
-%license LICENSE.md
+%license LICENSE
 %doc README.md
 %{_bindir}/gitcommit
 
