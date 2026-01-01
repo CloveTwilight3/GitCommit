@@ -12,11 +12,13 @@
 <img src="https://img.shields.io/chocolatey/v/gitcommit">
 <img src="https://img.shields.io/aur/version/gitcommit?logo=archlinux">
 <img src="https://img.shields.io/badge/PPA-v1.1.2-orange?logo=launchpad">
+<img src="https://img.shields.io/badge/Homebrew-v1.1.0-orange?logo=homebrew">
 <div>
 <img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/ci.yml/badge.svg">
 <img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/release-win.yml/badge.svg">
 <img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/release-apt.yml/badge.svg">
 <img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/release-aur.yml/badge.svg">
+<img src="https://github.com/CloveTwilight3/GitCommit/actions/workflows/release-brew.yml/badge.svg">
 </div>
 
 ## Why does this exist?
@@ -43,6 +45,16 @@ choco install gitcommit
 ```
 <div align="center">
 
+### macOS
+Install from Homebrew using:
+</div>
+
+```sh
+brew install CloveTwilight3/GitCommit/gitcommit
+```
+
+<div align="center">
+
 ### Ubuntu
 Install from PPA using:
 </div>
@@ -54,7 +66,7 @@ sudo apt install gitcommit
 ```
 
 <div align="center">
-If you don’t already have add-apt-repository:
+If you don't already have add-apt-repository:
 </div>
 
 ```sh

@@ -1,0 +1,108 @@
+name: Release to Homebrew
+
+on:
+  push:
+    tags:
+      - 'v*'
+    paths:
+      - 'src/linux/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.1.2)'
+        required: true
+        type: string
+
+jobs:
+  update-homebrew-formula:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="dev"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $VERSION"
+      
+      - name: Download tarball and calculate SHA256
+        id: calculate_sha
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          TARBALL_URL="https://github.com/CloveTwilight3/GitCommit/archive/refs/tags/v${VERSION}.tar.gz"
+          
+          echo "Downloading tarball from: $TARBALL_URL"
+          curl -L -o "gitcommit-${VERSION}.tar.gz" "$TARBALL_URL"
+          
+          SHA256=$(shasum -a 256 "gitcommit-${VERSION}.tar.gz" | awk '{print $1}')
+          echo "SHA256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "Calculated SHA256: $SHA256"
+      
+      - name: Update Homebrew formula
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          SHA256=${{ steps.calculate_sha.outputs.SHA256 }}
+          
+          # Create Formula directory if it doesn't exist
+          mkdir -p Formula
+          
+          cat > Formula/gitcommit.rb << EOF
+          class Gitcommit < Formula
+            desc "Automated Git workflow tool"
+            homepage "https://github.com/CloveTwilight3/GitCommit"
+            url "https://github.com/CloveTwilight3/GitCommit/archive/refs/tags/v${VERSION}.tar.gz"
+            sha256 "${SHA256}"
+            license "Estrogen-Source-Available-1.2"
+            version "${VERSION}"
+
+            depends_on "git"
+            depends_on "bash"
+
+            def install
+              bin.install "src/linux/gitcommit.sh" => "gitcommit"
+            end
+
+            test do
+              assert_match "GitCommit v#{version}", shell_output("#{bin}/gitcommit --version")
+            end
+          end
+          EOF
+          
+          echo "Generated Homebrew formula:"
+          cat Formula/gitcommit.rb
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "Clove Twilight"
+          git config --global user.email "clovetwilight3@outlook.com"
+      
+      - name: Commit and push formula
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          
+          git add Formula/gitcommit.rb
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Update Homebrew formula to version ${VERSION}"
+            git push
+            echo "Successfully pushed Homebrew formula update!"
+          else
+            echo "No changes to commit"
+          fi
+      
+      - name: Notify success
+        if: success()
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          echo "Successfully updated Homebrew formula to v${VERSION}!"
+          echo "Users can install with: brew install CloveTwilight3/GitCommit/gitcommit"
