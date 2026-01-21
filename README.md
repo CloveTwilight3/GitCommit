@@ -1,7 +1,7 @@
 # GitCommit
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/CloveTwilight3/GitCommit/refs/heads/main/assets/icon.png" alt="GitCommit Logo" width="128" height="128">
+<img src="https://raw.githubusercontent.com/EstrogenHRT/GitCommit/refs/heads/main/assets/icon.png" alt="GitCommit Logo" width="128" height="128">
 </div>
 
 <div align="center">
@@ -89,5 +89,6 @@ yay -S gitcommit
 <a href="https://github.com/CloveTwilight3/GitCommit/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=CloveTwilight3/GitCommit" />
 </a>
+
 
 </div>
